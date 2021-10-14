@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.5.0/css/all.css">
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <title>Document</title>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+        .container-fluid{
+            overflow: hidden;
+        }
+        .head{
+            text-align: center;
+        }
+        #todo-form input{
+            width: 100%;
+            padding: 10px;
+        }
+        #todo-form{
+            text-align: center;
+        }
+        .btn{
+            padding: 10px 50px;
+        }
+        .container .container-fluid {
+            max-width: 1000px;
+        }
+        .row{
+            margin: 15px 0px;
+        }
+        .fa-edit{
+            color: green;
+            margin-right: 20px;
+            cursor: pointer;
+        }
+        .fa-trash{
+            color: red;
+            margin-right: 20px;
+            cursor: pointer;
+        }
+        .col-2{
+            display: flex;
+            font-size: 25px;
+            text-align: right;
+        }
+        .s-b{
+            text-align: center;
+        }
+        #s{
+            display: none;
+        }
+        .msg{
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="container"><br><br>
+            <div class="head">
+                <h1>My Todo </h1>
+            </div><br><br>
+            <div class="add-todo">
+               <form method="post" id="todo-form">
+                    {% csrf_token %}
+                    <input type="text" name="title" id="title" required placeholder="Add Todo" class="form-control"> <br>
+                    <button type="submit" id="f" value="Add" class="btn btn-success">Add</button>     
+               </form>
+            <div class="s-b">
+                <input type="hidden" name="u_id" id="u_id" >
+                <button  onclick="updates();" id="s" class="btn btn-success">update</button> 
+            </div>
+            </div><br><hr>
+            <div class="container-fluid" id="todolist">
+                <div class="search"><br>
+                    <input type="text" id="se" class="form-control" placeholder="search todo">
+                </div><br><br>
+                <div class="msg">
+                    <h1>You dont have todos</h1>
+                    <h2>Please add todo</h2>
+                </div>
+
+                {% for i in allobj %}
+                 <div class="row" id="r{{i.todo_id}}">
+                    <div class="col-10" id="title{{i.todo_id}}">{{i.title}}</div>
+                    <div class="col-2"><i id="{{i.title}}" class="fa fa-edit {{i.todo_id}}"></i><i id="{{i.todo_id}}" class="fa fa-trash"></i></div>
+                 </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function(){
+            $("#todo-form").submit(function(e){
+                $.ajax({
+                type: "POST",
+                url: "/",
+                data:{
+                    title:$("#title").val(),
+                    csrfmiddlewaretoken:$('input[name=csrfmiddlewaretoken]').val()}, 
+                    success: function(data){
+                        
+                        var title = data.title;
+                        var ids = data.todo_id;
+
+                        var row = document.createElement("div");
+                        row.classList.add("row");
+                        row.setAttribute("id","r" + ids)
+
+                        var col_10 = document.createElement("div");
+                        col_10.classList.add("col-10");
+                        col_10.setAttribute("id", "title" + ids);
+
+                        var col_2 = document.createElement("div");
+                        col_2.classList.add("col-2");
+
+                        var i1 = document.createElement("i");
+                        i1.classList.add("fa");
+                        i1.classList.add("fa-trash");
+                        i1.setAttribute("id", ids)
+                        i1.onclick = function(){
+                            del(this.id)
+                        }
+
+                        var i2 = document.createElement("i");
+                        i2.classList.add("fas");
+                        i2.classList.add("fa-edit");
+                        i2.setAttribute("id", title)
+                        data = [ids,title]
+                        i2.onclick = function(){
+                            update(data)
+                        }
+                        
+                        var todo = document.getElementById("todolist");
+                        todo.appendChild(row);
+                        row.appendChild(col_10);
+                        row.appendChild(col_2);
+                        col_2.appendChild(i2)
+                        col_2.appendChild(i1)
+                        
+                        col_10.innerHTML = title;
+                        $("#title").val('');
+                        check();
+                        
+                    }
+                });
+                e.preventDefault();
+            });
+        });
+        
+        $('.fa-trash').click(function(){
+            $.ajax({
+            type: "POST",
+            url: "/delete/",
+            data:{
+                t_id:this.id,
+                csrfmiddlewaretoken:$('input[name=csrfmiddlewaretoken]').val()},
+            }); 
+            $("#r" + this.id).remove();
+            check(); 
+        })
+        
+        function del(e){
+            $.ajax({
+                type: "POST",
+                url: "/delete/",
+                data:{
+                    t_id:e,
+                    csrfmiddlewaretoken:$('input[name=csrfmiddlewaretoken]').val()},
+                }); 
+                $("#r" + e).remove();
+                check();
+        }
+
+        $('.fa-edit').click(function(){
+            $('#f').hide();
+            $('#s').show();
+            $('#title').val(this.id);
+            ab = this.classList[2];
+            $('#u_id').val(ab);  
+        })
+        
+        function update(e){
+            $('#f').hide();
+            $('#s').show();
+            $('#title').val(e[1]);
+            $('#u_id').val(e[0]);
+        }
+
+        function updates(){
+            $.ajax({
+                type: "POST",
+                url: "/update/",
+                data:{
+                    title: $('#title').val(),
+                    u_id: $('#u_id').val(),
+                    csrfmiddlewaretoken:$('input[name=csrfmiddlewaretoken]').val()},
+                    success: function(data){
+                        var title= data.title;
+                        var uid = data.todo_id;
+                        $('#title' + uid).html(title);
+                        $('#f').show();
+                        $('#s').hide();
+                        $('#title').val('');
+                        check();
+                    }
+                }); 
+        }
+
+        $(document).ready(function(){
+            $('#se').on("keyup",function(){
+                var value = $(this).val().toLowerCase();
+                $('.row ').filter(function(){
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+            });
+        });
+
+        function check(){
+            var ab = $('#todolist .row');
+            l = ab.length;
+            if(l == 0){
+                $('#f').show();
+                $('#s').hide();
+                $('.search').hide();
+                $('.msg').show();
+            }
+            else{
+                $('.search').show();
+                $('.msg').hide();
+            }
+        }
+
+        $(document).ready(function(){
+            check();
+        });
+    </script>
+</body>
+</html>
